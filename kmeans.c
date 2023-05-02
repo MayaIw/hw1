@@ -58,9 +58,73 @@ double[] centroidUpdate(double[][] cluster_members)
     return centroid;
 }
 
-int main(void)
-{
+int main(int k, int iter, int arg c, char **argv)
+{ 
+    int i;
+    int num_of_elements=0;
+    int j;
+    int max_line_len;
+    int d=1;
+    char ch;
+    char *line;
+    double[] number;
+    FILE *points = fopen(argv[1], "r");
+    while ((ch = fgetc(points)) != '\n')
+    {
+        if(ch==','){
+            d+=1;
+        }
+        
+        
+    }
+    /*if not empty*/
+    num_of_elements += 1;
+    max_line_len = 100*d;
 
+    /*count number of points in the file*/
+    *line = (char *)malloc(max_line_len+1, sizeof(char));
+    while(fgets (char *line, int max_line_len, FILE *points)){
+        num_of_elements += 1;
+    }
+
+    rewind(points);
+    /*memory allocation for all the points in the file*/
+    double[] elements_1d = (double *)calloc(num_of_elements*d, sizeof(double));
+    double[][] elements = calloc(d,sizeof(double *));
+    for(i=0; i<num_of_elements; i++){
+        elements[i] = elements_1d+i*d;
+    } 
+    /*memory allocation for k centroids*/
+    double[] centroids_1d = (double *)calloc(k*d, sizeof(double));
+    double[][] centroids = calloc(d,sizeof(double *));
+    for(i=0; i<k; i++){
+        centroids[i] = centroids_1d+i*d;
+    }
+    /*put all the points in one array, and the first k of them in the centroids array*/
+    i=0;
+    while(fgets (char *line, int max_line_len, FILE *points)){
+        line[strcspn(line, "\n")] = 0;
+        number = (double *)strtok(line, ',');
+        elements[i] = number;
+        if(i<k){
+            centroids[i] = number;
+        }
+        i++; 
+    } 
+
+    fclose(points);
+    
+    /*memory allocation for binary array representing the clusters*/
+    int[] clusters_1d = (int *)calloc(k*num_of_elements, sizeof(int));
+    int[][] clusters = calloc(num_of_elements,sizeof(int *));
+    for(j=0; j<k; j++){
+        clusters[j] = clusters_1d+j*num_of_elements;
+    } 
+    
+    i=0;
+    for(i; i<iter; i++){
+
+    }
     
 
     return 0;
