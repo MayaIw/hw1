@@ -71,7 +71,7 @@ void printClusters(double **clusters, int d,  int k){
     int j=0;
     for(i=0; i<k; i++){
         for(j=0; j<d; j++){
-            printf("%f", clusters[i][j]);
+            printf("%.4f", clusters[i][j]);
             if(j<d-1){
                 printf("%c", ',');
             }
@@ -123,6 +123,7 @@ int main(int argc, char **argv)
 
     if (argc != 3) 
     {
+        k = atoi(argv[1]);
         iter = 200;
     }
     else
@@ -274,6 +275,8 @@ int main(int argc, char **argv)
         size_of_clusters[j]=0;
        }
     }
+
+    printClusters(clusters, d, k); //otherwise it will not be printed
 
     free(elements);
     free(loop_cord);
