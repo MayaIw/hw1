@@ -2,6 +2,7 @@
 # include <stdlib.h>
 # include <math.h>
 # include <assert.h>
+# include <unistd.h>
 
 struct cord
 {
@@ -14,17 +15,12 @@ struct vector
     struct cord *cords;
 };
 
-double distance(double *p, double *q)
+double distance(double *p, double *q, int d)
 {
-    int d = sizeof(p)/sizeof(p[0]);
+    /*int d = sizeof(p)/sizeof(p[0]);*/
     int i;
     double distance = 0;
     double sum_of_squares = 0;
-    if(d!=(sizeof(q)/sizeof(q[0])))
-    {
-        printf("An Error Has Occurred");
-        exit(0);
-    }
     for(i=0; i<d; i++)
     {
         sum_of_squares += pow(p[i]-q[i],2);
@@ -33,16 +29,16 @@ double distance(double *p, double *q)
     return distance;
 }
 
-int clusterAssign(double *x, double **centroids)
+int clusterAssign(double *x, double **centroids, int k, int d)
 {
-    int num_of_clusters = sizeof(centroids)/sizeof(centroids[0]);
-    double min_distance = distance(x, centroids[0]);
+    /*int num_of_clusters = sizeof(centroids)/sizeof(centroids[0]);*/
+    double min_distance = distance(x, centroids[0],d);
     int cluster = 0;
     int i;
     double dist;
-    for(i=1; i<num_of_clusters; i++)
+    for(i=1; i<k; i++)
     {
-        dist = distance(x, centroids[i]);
+        dist = distance(x, centroids[i],d);
         if(dist <= min_distance)
         {
             min_distance = dist;
@@ -60,6 +56,10 @@ void centroidUpdate(double **clusters, int *size_of_clusters, int k, int d)
     {
         for(j=0; j<d ; j++)
         {
+            if(size_of_clusters[i]==0){
+                printf("An Error Has Occurred\n");
+                exit(0);
+            }
             clusters[i][j] /= size_of_clusters[i];
         }
     }
@@ -121,6 +121,8 @@ int main(int argc, char **argv)
     struct vector *loop_vector;
     struct cord *loop_cord;
 
+    int end = 0;
+
     if (argc != 3) 
     {
         k = atoi(argv[1]);
@@ -166,6 +168,8 @@ int main(int argc, char **argv)
         curr_cord->next = NULL;
     }
 
+    free(curr_vec);
+
     if(k<1 || k>num_of_elements){
         printf("Invalid number of clusters!");
         /*check if it is an int
@@ -184,7 +188,7 @@ int main(int argc, char **argv)
     /*memory allocation for all the points in the file*/
     elements_1d = calloc(num_of_elements*d, sizeof(double));
     assert(elements_1d != NULL);
-    elements = calloc(d,sizeof(double *));
+    elements = calloc(num_of_elements,sizeof(double *));
     assert(elements != NULL);
     for(i=0; i<num_of_elements; i++)
     {
@@ -194,7 +198,7 @@ int main(int argc, char **argv)
     /*memory allocation for k centroids*/
     centroids_1d = calloc(k*d, sizeof(double));
     assert(centroids_1d != NULL);
-    centroids = calloc(d,sizeof(double *));
+    centroids = calloc(k,sizeof(double *));
     assert(centroids != NULL);
     for(i=0; i<k; i++)
     {
@@ -204,10 +208,10 @@ int main(int argc, char **argv)
     /*put the first k points in the centroids array*/
     i=0;
     j=0;
-    loop_vector = head_vec;
     
+    loop_vector = head_vec;
     for(i=0; i<k; i++){
-        loop_cord = head_vec->cords;
+        loop_cord = loop_vector->cords;
         for(j=0; j<d; j++){
             centroids[i][j]= loop_cord->value;
             loop_cord=loop_cord->next;
@@ -218,7 +222,7 @@ int main(int argc, char **argv)
     /*memory allocation for sum matrix "representing" clusters*/
     clusters_1d = calloc(k*d, sizeof(double));
     assert(clusters_1d != NULL);
-    clusters = calloc(d,sizeof(double *));
+    clusters = calloc(k,sizeof(double *));
     assert(clusters != NULL);
     for(j=0; j<k; j++)
     {
@@ -233,6 +237,7 @@ int main(int argc, char **argv)
     j=0;
     loop_vector = head_vec;
     for(i=0; i<num_of_elements; i++){
+        loop_cord = loop_vector->cords;
         for(j=0; j<d; j++){
             elements[i][j]= loop_cord->value;
             loop_cord=loop_cord->next;
@@ -247,7 +252,7 @@ int main(int argc, char **argv)
     for(i=0; i<iter; i++)
     {
        for(j=0; j<num_of_elements; j++){ 
-        assigned_centroid= clusterAssign(elements[j], centroids);
+        assigned_centroid= clusterAssign(elements[j], centroids,k,d);
         for(l=0; l<d; l++){
             clusters[assigned_centroid][l] += elements[j][l];
         }
@@ -255,15 +260,20 @@ int main(int argc, char **argv)
        }
        centroidUpdate(clusters, size_of_clusters, k, d);
        j=0;
+       end=1;
        for(j=0; j<k; j++){
-        if(distance(centroids[j],clusters[j])>= 0.001){
+        if(distance(centroids[j],clusters[j],d)>= 0.001){
+            end = 0;
             break;
         }
-        else if(j==k-1){
+        /*else if(j==k-1){
             printClusters(clusters, d, k);
             i= iter+1;
             break;
-        }
+        }*/
+       }
+       if(end){
+        break;
        }
        j=0;
        l=0;
@@ -276,11 +286,12 @@ int main(int argc, char **argv)
        }
     }
 
-    printClusters(clusters, d, k); //otherwise it will not be printed
+    
+    printClusters(centroids, d, k); /*otherwise it will not be printed*/
 
     free(elements);
-    free(loop_cord);
-    free(loop_vector);
+    /*free(loop_cord);
+    free(loop_vector);*/
     free(centroids);
     free(centroids_1d);
     free(elements_1d);
@@ -288,5 +299,6 @@ int main(int argc, char **argv)
     free(size_of_clusters);
     free(clusters_1d);
 
+    
     return 0;
 }
