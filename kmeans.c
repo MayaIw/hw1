@@ -1,8 +1,6 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include <math.h>
-# include <assert.h>
-# include <unistd.h>
 
 struct cord
 {
@@ -17,7 +15,6 @@ struct vector
 
 double distance(double *p, double *q, int d)
 {
-    /*int d = sizeof(p)/sizeof(p[0]);*/
     int i;
     double distance = 0;
     double sum_of_squares = 0;
@@ -31,7 +28,6 @@ double distance(double *p, double *q, int d)
 
 int clusterAssign(double *x, double **centroids, int k, int d)
 {
-    /*int num_of_clusters = sizeof(centroids)/sizeof(centroids[0]);*/
     double min_distance = distance(x, centroids[0],d);
     int cluster = 0;
     int i;
@@ -48,24 +44,6 @@ int clusterAssign(double *x, double **centroids, int k, int d)
     return cluster;
 }
 
-void centroidUpdate(double **clusters, int *size_of_clusters, int k, int d)
-{
-    int i = 0;
-    int j = 0;
-    for(i=0; i < k; i++)
-    {
-        for(j=0; j<d ; j++)
-        {
-            if(size_of_clusters[i]==0){
-                printf("An Error Has Occurred\n");
-                exit(0);
-            }
-            clusters[i][j] /= size_of_clusters[i];
-        }
-    }
-    return;
-}
-
 void printClusters(double **clusters, int d,  int k){
     int i=0;
     int j=0;
@@ -79,6 +57,24 @@ void printClusters(double **clusters, int d,  int k){
         printf("\n");
     }
 
+}
+
+void centroidUpdate(double **clusters, int *size_of_clusters, int k, int d)
+{
+    int i = 0;
+    int j = 0;
+    for(i=0; i < k; i++)
+    {   
+        for(j=0; j<d ; j++)
+        {
+            if(size_of_clusters[i]==0){
+                printf("An Error Has Occurred\n");
+                exit(1);
+            }
+            clusters[i][j] /= size_of_clusters[i];
+        }
+    }
+    return;
 }
 
 void delete_cord( struct cord *head ){
@@ -123,22 +119,40 @@ int main(int argc, char **argv)
 
     int end = 0;
 
-    if (argc != 3) 
+    if (argc == 2) 
     {
         k = atoi(argv[1]);
         iter = 200;
     }
-    else
+    else if(argc ==3)
     {
         k = atoi(argv[1]);
         iter = atoi(argv[2]);
+        if(iter<1 || iter>1000 || iter!= atof(argv[2])){
+            printf("Invalid maximum iteration!\n");
+            exit(1);
+        }
+    }
+    else
+    {
+        printf("An Error Has Occurred\n");
+        exit(1);
     }
 
-    head_cord = malloc(sizeof(struct cord));
+    head_cord = malloc(sizeof(struct cord)); 
+    if(head_cord==NULL){
+        printf("An Error Has Occurred\n");
+        exit(1);
+    }
     curr_cord = head_cord;
     curr_cord->next = NULL;
 
     head_vec = malloc(sizeof(struct vector));
+    if(head_vec==NULL){
+        printf("An Error Has Occurred\n");
+        free(head_cord);
+        exit(1);
+    }
     curr_vec = head_vec;
     curr_vec->next = NULL;
 
@@ -152,10 +166,20 @@ int main(int argc, char **argv)
         {   is_end_of_line =1;
             curr_cord->value = n;
             curr_vec->cords = head_cord;
-            curr_vec->next = malloc(sizeof(struct vector));
+            curr_vec->next = calloc(1,sizeof(struct vector));
+            if(curr_vec->next==NULL){
+                printf("An Error Has Occurred\n");
+                delete_vector(head_vec);
+                exit(1);
+            }
             curr_vec = curr_vec->next;
             curr_vec->next = NULL;
-            head_cord = malloc(sizeof(struct cord));
+            head_cord = calloc(1,sizeof(struct cord));
+            if(head_cord==NULL){
+                printf("An Error Has Occurred\n");
+                delete_vector(head_vec);
+                exit(1);
+            }
             curr_cord = head_cord;
             curr_cord->next = NULL;
             num_of_elements++;
@@ -167,29 +191,30 @@ int main(int argc, char **argv)
         curr_cord = curr_cord->next;
         curr_cord->next = NULL;
     }
+    
+    free(curr_cord);
 
-    free(curr_vec);
-
-    if(k<1 || k>num_of_elements){
-        printf("Invalid number of clusters!");
-        /*check if it is an int
-        free allocated memory*/
-        exit(0);
-    }
-
-    if(iter<1 || iter>1000){
-        printf("Invalid maximum iteration!");
-        /*check if it is an int
-        free allocated memory*/
-        exit(0);
+    if(k<1 || k>num_of_elements || k!= atof(argv[1])){
+        printf("Invalid number of clusters!\n");
+        delete_vector(head_vec);
+        exit(1);
     }
 
 
     /*memory allocation for all the points in the file*/
     elements_1d = calloc(num_of_elements*d, sizeof(double));
-    assert(elements_1d != NULL);
+    if(elements_1d == NULL){
+        printf("An Error Has Occurred\n");
+        delete_vector(head_vec);
+        exit(1);
+    }
     elements = calloc(num_of_elements,sizeof(double *));
-    assert(elements != NULL);
+    if(elements == NULL){
+        printf("An Error Has Occurred\n");
+        delete_vector(head_vec);
+        free(elements_1d);
+        exit(1);
+    }
     for(i=0; i<num_of_elements; i++)
     {
         elements[i] = elements_1d+i*d;
@@ -197,9 +222,22 @@ int main(int argc, char **argv)
 
     /*memory allocation for k centroids*/
     centroids_1d = calloc(k*d, sizeof(double));
-    assert(centroids_1d != NULL);
+    if(centroids_1d == NULL){
+        printf("An Error Has Occurred\n");
+        delete_vector(head_vec);
+        free(elements_1d);
+        free(elements);
+        exit(1);
+    }
     centroids = calloc(k,sizeof(double *));
-    assert(centroids != NULL);
+    if(centroids == NULL){
+        printf("An Error Has Occurred\n");
+        delete_vector(head_vec);
+        free(elements_1d);
+        free(elements);
+        free(centroids_1d);
+        exit(1);
+    }
     for(i=0; i<k; i++)
     {
         centroids[i] = centroids_1d+i*d;
@@ -221,9 +259,26 @@ int main(int argc, char **argv)
     
     /*memory allocation for sum matrix "representing" clusters*/
     clusters_1d = calloc(k*d, sizeof(double));
-    assert(clusters_1d != NULL);
+    if(clusters_1d == NULL){
+        printf("An Error Has Occurred\n");
+        delete_vector(head_vec);
+        free(elements_1d);
+        free(elements);
+        free(centroids_1d);
+        free(centroids);
+        exit(1);
+    }
     clusters = calloc(k,sizeof(double *));
-    assert(clusters != NULL);
+    if(clusters == NULL){
+        printf("An Error Has Occurred\n");
+        delete_vector(head_vec);
+        free(elements_1d);
+        free(elements);
+        free(centroids_1d);
+        free(centroids);
+        free(clusters_1d);
+        exit(1);
+    }
     for(j=0; j<k; j++)
     {
         clusters[j] = clusters_1d+j*d;
@@ -231,6 +286,17 @@ int main(int argc, char **argv)
 
     /*memory allocation for array of sizes of clusters*/
     size_of_clusters = calloc(k, sizeof(int));
+    if(size_of_clusters == NULL){
+        printf("An Error Has Occurred\n");
+        delete_vector(head_vec);
+        free(elements_1d);
+        free(elements);
+        free(centroids_1d);
+        free(centroids);
+        free(clusters_1d);
+        free(clusters);
+        exit(1);
+    }
     
     /*assignment of elements into 2d matrix*/
     i=0;
@@ -245,12 +311,12 @@ int main(int argc, char **argv)
         loop_vector=loop_vector->next;
     }
     delete_vector(head_vec);
-
+    
     i=0;
     j=0;
     l=0;
     for(i=0; i<iter; i++)
-    {
+    { 
        for(j=0; j<num_of_elements; j++){ 
         assigned_centroid= clusterAssign(elements[j], centroids,k,d);
         for(l=0; l<d; l++){
@@ -266,11 +332,7 @@ int main(int argc, char **argv)
             end = 0;
             break;
         }
-        /*else if(j==k-1){
-            printClusters(clusters, d, k);
-            i= iter+1;
-            break;
-        }*/
+       
        }
        if(end){
         break;
@@ -287,11 +349,9 @@ int main(int argc, char **argv)
     }
 
     
-    printClusters(centroids, d, k); /*otherwise it will not be printed*/
+    printClusters(centroids, d, k);
 
     free(elements);
-    /*free(loop_cord);
-    free(loop_vector);*/
     free(centroids);
     free(centroids_1d);
     free(elements_1d);

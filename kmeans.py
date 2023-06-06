@@ -1,21 +1,18 @@
 import math
 import sys
+import copy
 
 #p1, p2 are arrays with float values, representing d dimentional points
 #the function calculates the euclidean distance between p1 and p2
 def distance(p1, p2, d):
-    #if(len(p1)!=len(p2)):
-    #    print("An Error Has Occurred")
-    #    exit()
-    sum_of_squares = 0
+    sum_of_squares = 0.0
     for i in range(d):
-        sum_of_squares += (p1[i]-p2[i])**2
-    distance = math.sqrt(sum_of_squares)
+        sum_of_squares += math.pow(float(p1[i])-float(p2[i]), 2)
+    distance= math.sqrt(sum_of_squares)
     return distance
 
 #x is a point in R^d, centroids is an array with k points in R^d
 def clusterAssign(x, centriods, k, d):
-   #num_of_clusters = len(centriods)
    min_distance = distance(x, centriods[0], d)
    cluster = 0
    for i in range(1, k):
@@ -29,13 +26,13 @@ def clusterAssign(x, centriods, k, d):
 #size of clusters is an array of the size of each cluster
 #k is the number of clusters
 #d is the number of coordinates of each point
-def centriodUpdate(clusters, size_of_clusters, k, d):
+def centriodUpdate(clusters, size_of_clusters, k: int, d: int):
     for i in range(k):
         for j in range(d):
             if size_of_clusters[i]==0:
                 print("An Error Has Occurred")
-                exit()
-            clusters[i][j] /= size_of_clusters[i]
+                exit(0)
+            clusters[i][j] =  clusters[i][j]/size_of_clusters[i]
     return
 
 def printClusters(clusters, d, k):
@@ -67,52 +64,60 @@ def main():
     line_count =0
     end=0
 
-    if len(sys.argv) != 4:
-        k = int(sys.argv[1])
+    if len(sys.argv) == 3:
+        if sys.argv[1].isdigit():
+            k = int(sys.argv[1])
+        else:
+            print("Invalid number of clusters!")
+            exit(0)
         iter = 200
         file_name = sys.argv[2] 
+    elif len(sys.argv) == 4:
+         if sys.argv[1].isdigit():
+            k = int(sys.argv[1])
+         else:
+            print("Invalid number of clusters!")
+            exit(0)
+         if sys.argv[2].isdigit():
+             iter = int(sys.argv[2])
+         else:
+            print("Invalid maximum iteration!")
+            exit(0)
+         file_name = str(sys.argv[3])
+         if iter<1 or iter>1000:
+            print("Invalid maximum iteration!")
+            exit(0)
     else:
-        k = int(sys.argv[1])
-        iter = int(sys.argv[2])
-        file_name = str(sys.argv[3])
+        print("An Error Has Occurred")
+        exit(0)
 
     file = open(file_name, "r")
     for line in file:
-        point = [float(n) for n in line.split(',') if is_float(n)] 
+        point = [float(n) for n in line.split(',') if is_float(n)]
         elements.append(point)
         line_count+=1
         if line_count<=k:
-            centroids.append(point)
-    
-    #print(elements)
-    #print("hello")
-    #print(centroids)
+            centroids.append(copy.deepcopy(point))
 
     num_of_elements=len(elements)
     d=len(elements[0])
-    #print("d=", d)
-    #print("k=", k)
-    #print("num of elements=", num_of_elements)
+
+    if k<1 or k>num_of_elements:
+        print("Invalid number of clusters!")
+        exit(0)
+    
 
     clusters = [[0.0 for i in range(d)] for j in range(k)] 
-    size_of_clusters = [0.0 for i in range(k)]
-    #print("clusters", clusters)
-    #print("size of clusters", size_of_clusters)
+    size_of_clusters = [0 for i in range(k)]
 
     assigned_centriod=0
     for i in range(iter):
-        print("iteration", i)
         for j in range(num_of_elements):
-            assigned_centriod=clusterAssign(elements[j],centroids, k, d)
-            print("assigned_centriod", assigned_centriod)
+            assigned_centriod = clusterAssign(elements[j],centroids, k, d)
             for l in range(d):
                 clusters[assigned_centriod][l] += elements[j][l]
             size_of_clusters[assigned_centriod]+=1
-            #print("size of clusters")    
-            #print(size_of_clusters)
         centriodUpdate(clusters, size_of_clusters, k, d)
-        #print("clusters")
-        #print(clusters)
         j=0
         end=1
         for j in range(k):
@@ -125,8 +130,8 @@ def main():
         l=0
         for j in range(k):
             for l in range(d):
-                centroids[j][l] = clusters[j][l]
-                clusters[j][l] = 0
+                centroids[j][l] = float(clusters[j][l])
+                clusters[j][l] = 0.0
             size_of_clusters[j] = 0
 
     printClusters(centroids, d, k)
